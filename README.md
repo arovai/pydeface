@@ -1,43 +1,36 @@
-## An example BIDS App (template repository)
-Every BIDS App needs to follow a minimal set of command arguments common across
-all of the Apps. This allows users and developers to easily use and integrate
-BIDS Apps with their environment.
+## Pydeface BIDS App
+This a [BIDS App](https://bids-apps.neuroimaging.io) wrapper for [Pydeface](https://github.com/poldracklab/pydeface).
+Like every BIDS App it consists of a container that includes all of the dependencies and run script that parses a [BIDS dataset](http://bids.neuroimaging.io).
+BIDS Apps run on Windows, Linux, Mac as well as HCPs/clusters.
 
-This is a minimalist example of a BIDS App consisting of a Dockerfile and a simple
-entry point script (written in this case in Python) accepting the standard BIDS
-Apps command line arguments. This repository can be used as a template for new BIDS Apps.
-
-For more information about the specification of BIDS Apps see [here](https://docs.google.com/document/d/1E1Wi5ONvOVVnGhj21S1bmJJ4kyHFT7tkxnV3C23sjIE/edit#).
 
 ### Description
-This is a placeholder for a short description explaining to the user what your App will doing.
+Pydeface BIDS App will grab the images corresponding to the subject
+and image modality requested and run Pydeface on them, overwritting
+the original images.
 
 ### Documentation
-Provide a link to the documention of your pipeline.
+Please read the official [**Pydeface**](https://github.com/poldracklab/pydeface) docs.
 
-### How to report errors
-Provide instructions for users on how to get help and report errors.
-
-### Acknowledgements
-Describe how would you would like users to acknowledge use of your App in their papers (citation, a paragraph that can be copy pasted, etc.)
+### Error Reporting
+Experiencing problems? Please open an [issue](http://github.com/neurodata/ndmg/issues/new) and explain what's happening so we can help.
 
 ### Usage
 This App has the following command line arguments:
 
 		usage: run.py [-h]
 		              [--participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]
-		              bids_dir output_dir {participant,group}
+		              bids_dir output_dir {participant}
 
 		Example BIDS App entry point script.
 
 		positional arguments:
 		  bids_dir              The directory with the input dataset formatted
 		                        according to the BIDS standard.
-		  output_dir            The directory where the output files should be stored.
-		                        If you are running a group level analysis, this folder
-		                        should be prepopulated with the results of
-		                        the participant level analysis.
-		  {participant,group}   Level of the analysis that will be performed. Multiple
+		  output_dir            This argument is here for BIDS-Apps
+		                        compatibility. All images will be written to the bids_dir
+					overwriting the input.
+		  {participant}   Level of the analysis that will be performed. Multiple
 		                        participant level analyses can be run independently
 		                        (in parallel).
 
@@ -50,27 +43,24 @@ This App has the following command line arguments:
 		                        not include "sub-"). If this parameter is not provided
 		                        all subjects will be analyzed. Multiple participants
 		                        can be specified with a space separated list.
-
+                  --modality MODALITY1 [MODALITY2 ...]
+					The modalities of images that will be defaced. They can be
+					either suffixes (e.g.: T1w, T2w, bold) or datatype (e.g.:
+					anat, func, fmap).  Default: anat
+		  --skip_bids_validator
+					If set, it will not run the BIDS validator before defacing.
+																																  
 To run it in participant level mode (for one participant):
 
     docker run -i --rm \
-		-v /Users/filo/data/ds005:/bids_dataset:ro \
-		-v /Users/filo/outputs:/outputs \
-		bids/example \
-		/bids_dataset /outputs participant --participant_label 01
+		-v /Users/filo/data/ds005:/bids_dataset \
+		cbinyu/pydeface \
+		/bids_dataset /bids_dataset participant --participant_label 01
 
-After doing this for all subjects (potentially in parallel), the group level analysis
-can be run:
+To run it for a specific modality of images:
 
     docker run -i --rm \
-		-v /Users/filo/data/ds005:/bids_dataset:ro \
-		-v /Users/filo/outputs:/outputs \
-		bids/example \
-		/bids_dataset /outputs group
+                -v /Users/filo/data/ds005:/bids_dataset \
+		cbinyu/pydeface \
+		/bids_dataset /bids_dataset participant --participant_label 01 --modalities T1w
 
-### Special considerations
-Describe whether your app has any special requirements. For example:
-
-- Multiple map reduce steps (participant, group, participant2, group2 etc.)
-- Unusual memory requirements
-- etc.

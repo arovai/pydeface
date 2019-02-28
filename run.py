@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import subprocess
-import nibabel
-import numpy
+from subprocess import Popen, PIPE, STDOUT
 from glob import glob
+from bids import BIDSLayout
+import pdb
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
@@ -12,8 +12,9 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
 def run(command, env={}):
     merged_env = os.environ
     merged_env.update(env)
-    process = subprocess.Popen(command, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, shell=True,
+    print(command)
+    process = Popen(command, stdout=PIPE,
+                               stderr=STDOUT, shell=True,
                                env=merged_env)
     while True:
         line = process.stdout.readline()
@@ -24,27 +25,34 @@ def run(command, env={}):
     if process.returncode != 0:
         raise Exception("Non zero return code: %d"%process.returncode)
 
-parser = argparse.ArgumentParser(description='Example BIDS App entrypoint script.')
+
+
+parser = argparse.ArgumentParser(description='Pydeface BIDS App')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
 parser.add_argument('output_dir', help='The directory where the output files '
-                    'should be stored. If you are running group level analysis '
-                    'this folder should be prepopulated with the results of the'
-                    'participant level analysis.')
+                    'should be stored.')
 parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
                     'Multiple participant level analyses can be run independently '
                     '(in parallel) using the same output_dir.',
-                    choices=['participant', 'group'])
+                    choices=['participant'])
 parser.add_argument('--participant_label', help='The label(s) of the participant(s) that should be analyzed. The label '
                    'corresponds to sub-<participant_label> from the BIDS spec '
                    '(so it does not include "sub-"). If this parameter is not '
                    'provided all subjects should be analyzed. Multiple '
                    'participants can be specified with a space separated list.',
                    nargs="+")
+#parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
+#                   default=1, type=int)
+parser.add_argument('--modalities', help='Which modalities to deface. Space separated list.'
+                    '(Use "anat" for all T1w, T2w and PD.)',
+                    nargs="+", choices=['T1w', 'T2w', 'PD', 'bold',
+                                        'anat', 'func', 'dwi'],
+                    default=['anat'])
 parser.add_argument('--skip_bids_validator', help='Whether or not to perform BIDS dataset validation',
                    action='store_true')
 parser.add_argument('-v', '--version', action='version',
-                    version='BIDS-App example version {}'.format(__version__))
+                    version='BIDS-App pydeface version {}'.format(__version__))
 
 
 args = parser.parse_args()
@@ -52,6 +60,7 @@ args = parser.parse_args()
 if not args.skip_bids_validator:
     run('bids-validator %s'%args.bids_dir)
 
+layout = BIDSLayout(args.bids_dir)
 subjects_to_analyze = []
 # only for a subset of subjects
 if args.participant_label:
@@ -64,23 +73,37 @@ else:
 # running participant level
 if args.analysis_level == "participant":
 
-    # find all T1s and skullstrip them
     for subject_label in subjects_to_analyze:
-        for T1_file in glob(os.path.join(args.bids_dir, "sub-%s"%subject_label,
-                                         "anat", "*_T1w.nii*")) + glob(os.path.join(args.bids_dir,"sub-%s"%subject_label,"ses-*","anat", "*_T1w.nii*")):
-            out_file = os.path.split(T1_file)[-1].replace("_T1w.", "_brain.")
-            cmd = "bet %s %s"%(T1_file, os.path.join(args.output_dir, out_file))
-            print(cmd)
-            run(cmd)
+        print("Subject: %s"%subject_label)
 
-# running group level
-elif args.analysis_level == "group":
-    brain_sizes = []
-    for subject_label in subjects_to_analyze:
-        for brain_file in glob(os.path.join(args.output_dir, "sub-%s*.nii*"%subject_label)):
-            data = nibabel.load(brain_file).get_data()
-            # calcualte average mask size in voxels
-            brain_sizes.append((data != 0).sum())
+        ###   Find all images to be processed:   ###
+        # We'll first create a set of all the images that we need
+        #   to process, to make sure we don't process the same image
+        #   twice because they belong to two different modalities
+        #   requested
+        toBeProcessed = set()
+        for modality in args.modalities:
 
-    with open(os.path.join(args.output_dir, "avg_brain_size.txt"), 'w') as fp:
-        fp.write("Average brain size is %g voxels"%numpy.array(brain_sizes).mean())
+            # In BIDSLayout, 'anat', 'func' and 'fmap' are "datatypes", while
+            #    'T1w', 'T2w', 'bold', ...  are "suffixes".  ('dwi' is both).
+            # So we need to make sure we call layout.get with the correct argument names:
+            myKwarg = {"datatype" : modality} if modality in ['anat','func','fmap'] else {"suffix" : modality}
+            # get filenames matching:
+            myImages = layout.get(subject=subject_label,
+                                  **myKwarg,
+                                  extensions=["nii.gz", "nii"],
+                                  return_type='file')
+            if (len(myImages) == 0):
+                print("No {0} images found for subject {1}".format(modality, subject_label))
+
+            toBeProcessed.update(myImages)
+                
+        ###   Do the processing:   ###
+        # For now, we want to just overwrite the inputs, so that the BIDS root folder
+        #   doesn't contain any "faced" image (well, just the 'sourcedata' DICOMS)
+
+        for myImage in toBeProcessed:
+            run('pydeface {0} --outfile {0} --force'.format(myImage))
+
+
+# nothing to run at the group level for this app
