@@ -5,52 +5,45 @@
 # Use an official Python runtime as a parent image
 FROM python:3.5-slim as builder
 
-
 ## install:
-# -gcc compiler     (needed to install some of the python packages)
 # -curl, tar, unzip (to get the FSL distribution)
-# -libopenblas-base (used by fsl)
+# -gcc compiler     (needed to install pydeface)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-    g++ \
     curl \
     tar \
     unzip \
-    libopenblas-base \
+    g++ \
   && apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
 
 
-# Specify where to install packages:
-ENV INSTALL_FOLDER=/usr/local/
+###   Install BIDS-Validator   ###
+
+# Install nodejs and bids-validator from npm:
+RUN apt-get update -qq && apt-get install -y gnupg && \
+    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+    apt-get update -qq && apt-get install -y nodejs && \
+    apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y && \
+  npm install -g bids-validator
 
 
-###   Install FSL   ###
+###   Install PyBIDS   ###
 
-# The following gives you a clean install of FSL to run in a CLI
+RUN pip install pybids
 
-# install FSL 6.0.0:
-# "fslinstaller.py" only works for python 2.X.
-RUN curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.0-centos7_64.tar.gz | tar xz -C ${INSTALL_FOLDER} \
-    --exclude='fsl/doc' \
-    --exclude='fsl/data/first' \    
-    --exclude='fsl/data/atlases' \
-    --exclude='fsl/data/possum' \    
-    --exclude='fsl/src' \    
-    --exclude='fsl/extras/src' \    
-    --exclude='fsl/bin/fslview*' \
-    --exclude='fsl/bin/FSLeyes'
-#    # Note: ${INSTALL_FOLDER}/fsl/data/standard is needed for functional processing
+###   Clean up a little   ###
 
-
-# Configure environment
-ENV FSLDIR=${INSTALL_FOLDER}/fsl/ \
-    FSLOUTPUTTYPE=NIFTI_GZ
-# (Note: the following cannot be included in the same one-line with
-#        the above, since it depends on the previous variables)
-ENV PATH=${FSLDIR}/bin:$PATH \
-    LD_LIBRARY_PATH=${FSLDIR}:${LD_LIBRARY_PATH}
+# Get rid of some test folders in some of the Python packages:
+# (They are not needed for our APP):
+RUN rm -fr /usr/local/lib/python3.5/site-packages/nibabel/nicom/tests && \
+    rm -fr /usr/local/lib/python3.5/site-packages/nibabel/tests       && \
+    rm -fr /usr/local/lib/python3.5/site-packages/nibabel/gifti/tests    \
+    # Remove scipy, because we really don't need it.                     \
+    # I'm leaving the EGG-INFO folder because Nipype requires it.        \
+    && rm -fr /usr/local/lib/python3.5/site-packages/scipy-1.1.0-py3.5-linux-x86_64.egg/scipy
 
 
 ###   Install Pydeface   ###
+
 
 # Latest release: v1.1.0 (Dec. '18)
 
@@ -85,33 +78,6 @@ RUN cd /tmp && \
 #    sed -i -e "s/\([ ]*\)package_data=[a-zA-Z0-9]*,$/&\n\1zip_safe=False,/" setup.py && \
 #    python3 setup.py install && \
 #    cd / && rm -rf /tmp/pydeface
-
-
-###   Install BIDS-Validator   ###
-
-# Install nodejs and bids-validator from npm:
-RUN apt-get update -qq && apt-get install -y gnupg && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get update -qq && apt-get install -y nodejs && \
-    apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y && \
-  npm install -g bids-validator
-
-
-###   Install PyBIDS   ###
-
-RUN pip install pybids
-
-###   Clean up a little   ###
-
-# Get rid of some test folders in some of the Python packages:
-# (They are not needed for our APP):
-RUN rm -fr /usr/local/lib/python3.5/site-packages/nibabel/nicom/tests && \
-    rm -fr /usr/local/lib/python3.5/site-packages/nibabel/tests       && \
-    rm -fr /usr/local/lib/python3.5/site-packages/nibabel/gifti/tests    \
-    # Remove scipy, because we really don't need it.                     \
-    # I'm leaving the EGG-INFO folder because Nipype requires it.        \
-    && rm -fr /usr/local/lib/python3.5/site-packages/scipy-1.1.0-py3.5-linux-x86_64.egg/scipy
-
        
 
 #############
@@ -128,8 +94,10 @@ ENV PATH=${FSLDIR}/bin:$PATH \
 
 COPY --from=builder ./usr/local/lib/python3.5/ /usr/local/lib/python3.5/
 COPY --from=builder ./usr/local/bin/           /usr/local/bin/
-COPY --from=builder ./usr/local/fsl/bin/flirt  /usr/local/fsl/bin/
-COPY --from=builder ./usr/lib/libopenblas.so.0 /usr/lib/
+COPY --from=cbinyu/fsl6-core ./usr/local/fsl/bin/flirt  /usr/local/fsl/bin/
+COPY --from=cbinyu/fsl6-core ./usr/local/fsl/lib/libopenblas.so.0 \
+                             ./usr/local/fsl/lib/libgfortran.so.3 \
+			         /usr/local/fsl/lib/
 COPY --from=builder ./usr/lib/x86_64-linux-gnu /usr/lib/
 COPY --from=builder ./usr/bin/                 /usr/bin/
 COPY --from=builder ./usr/lib/node_modules/bids-validator/    /usr/lib/node_modules/bids-validator/
