@@ -13,7 +13,7 @@ the original images.
 Please read the official [**Pydeface**](https://github.com/poldracklab/pydeface) docs.
 
 ### Error Reporting
-Experiencing problems? Please open an [issue](http://github.com/neurodata/ndmg/issues/new) and explain what's happening so we can help.
+Experiencing problems? Please open an [issue](http://github.com/cbinyu/pydeface/issues/new) and explain what's happening so we can help.
 
 ### Usage
 This App has the following command line arguments:
@@ -22,7 +22,7 @@ This App has the following command line arguments:
 		              [--participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]
 		              bids_dir output_dir {participant}
 
-		Example BIDS App entry point script.
+		Pydeface BIDS App.
 
 		positional arguments:
 		  bids_dir              The directory with the input dataset formatted
@@ -30,26 +30,27 @@ This App has the following command line arguments:
 		  output_dir            This argument is here for BIDS-Apps
 		                        compatibility. All images will be written to the bids_dir
 					overwriting the input.
-		  {participant}   Level of the analysis that will be performed. Multiple
+		  {participant}         Level of the analysis that will be performed. Multiple
 		                        participant level analyses can be run independently
 		                        (in parallel).
 
 		optional arguments:
-		  -h, --help            show this help message and exit
-		  --participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]
-		                        The label(s) of the participant(s) that should be
-		                        analyzed. The label corresponds to
-		                        sub-<participant_label> from the BIDS spec (so it does
-		                        not include "sub-"). If this parameter is not provided
-		                        all subjects will be analyzed. Multiple participants
-		                        can be specified with a space separated list.
+                  -h, --help            show this help message and exit
+                  --participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]
+                                        The label(s) of the participant(s) that should be
+                                        analyzed. The label corresponds to
+                                        sub-<participant_label> from the BIDS spec (so it does
+                                        not include "sub-"). If this parameter is not provided
+                                        all subjects will be analyzed. Multiple participants
+                                        can be specified with a space separated list.
                   --modality MODALITY1 [MODALITY2 ...]
-					The modalities of images that will be defaced. They can be
-					either suffixes (e.g.: T1w, T2w, bold) or datatype (e.g.:
-					anat, func, fmap).  Default: anat
-		  --skip_bids_validator
-					If set, it will not run the BIDS validator before defacing.
-																																  
+                                        The modalities of images that will be defaced. They can be
+                                        either suffixes (e.g.: T1w, T2w, bold) or datatype (e.g.:
+                                        anat, func, fmap).  Default: anat
+                  --skip_bids_validator
+                                        If set, it will not run the BIDS validator before defacing.
+
+
 To run it in participant level mode (for one participant):
 
     docker run -i --rm \

@@ -1,0 +1,107 @@
+{
+    "command-line": "mkdir -p OUTPUT_DIR; /run.py BIDS_DIR OUTPUT_DIR ANALYSIS_LEVEL PARTICIPANT_LABEL MODALITY",
+    "container-image": {
+        "image": "cbinyu/bids_pydeface",
+        "type": "docker"
+    },
+    "description": "See https://github.com/cbinyu/pydeface",
+    "inputs": [
+        {
+            "description": "The directory with the input dataset formatted according to the BIDS standard.",
+            "id": "bids_dir",
+            "name": "BIDS directory",
+            "optional": false,
+            "type": "File",
+            "value-key": "BIDS_DIR"
+        },
+        {
+            "description": "The directory where the output files should be stored. If you want to overwrite the original images (to anonymize them), this will be the same as the BIDS directory.",
+            "id": "output_dir_name",
+            "name": "Output directory name",
+            "optional": false,
+            "type": "String",
+            "value-key": "OUTPUT_DIR"
+        },
+        {
+            "description": "Level of the analysis that will be performed. Multiple participant level analyses can be run independently (in parallel).",
+            "id": "analysis_level",
+            "name": "Analysis level",
+            "type": "String",
+            "value-choices": [
+                "participant"
+            ],
+            "value-key": "ANALYSIS_LEVEL"
+        },
+        {
+            "command-line-flag": "--participant_label",
+            "description": "The label(s) of the participant(s) that should be defaced. The label corresponds to sub-<participant_label> from the BIDS spec (so it does not include \"sub-\"). If this parameter is not provided all subjects will be analyzed. Multiple participants can be specified with a space separated list.",
+            "id": "participant_label",
+            "list": true,
+            "name": "Participant label",
+            "optional": true,
+            "type": "String",
+            "value-key": "PARTICIPANT_LABEL"
+        },
+        {
+            "command-line-flag": "--modality",
+            "description": "The label(s) of the image modality(ies) that should be defaced. They can be either suffixes (e.g.: T1w, T2w, bold) or datatypes (e.g., anat, func, fmap). If this parameter is not provided, only the anatomical images will be defaced.",
+            "id": "modality",
+            "list": true,
+            "name": "Modality",
+            "optional": true,
+	    "default-value": "anat",
+            "type": "String",
+            "value-key": "MODALITY"
+        }
+    ],
+    "invocation-schema": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "description": "Invocation schema for bids_pydeface.",
+        "properties": {
+            "analysis_level": {
+                "enum": [
+                    "participant"
+                ]
+            },
+            "bids_dir": {
+                "type": "string"
+            },
+            "output_dir_name": {
+                "type": "string"
+            },
+            "participant_label": {
+                "items": {
+                    "type": "string"
+                },
+                "type": "array"
+            },
+            "modality": {
+                "items": {
+                    "type": "string"
+                },
+                "type": "array"
+            }
+        },
+        "required": [
+            "bids_dir",
+	    "output_dir",
+            "analysis_level"
+        ],
+        "title": "bids_pydeface.invocationSchema",
+        "type": "object"
+    },
+    "name": "bids_pydeface",
+    "output-files": [
+        {
+            "description": "The directory where the output files should be stored. If you want to overwrite the original images (to anonymize them), this will be the same as the BIDS directory.",
+            "id": "output_dir",
+	    "name": "Output directory",
+	    "optional": false,
+	    "type": "String",
+            "path-template": "OUTPUT_DIR"
+        }
+    ],
+    "schema-version": "0.5",
+    "tool-version": "dev"
+}

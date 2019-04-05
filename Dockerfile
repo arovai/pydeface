@@ -6,7 +6,7 @@
 FROM python:3.5-slim as builder
 
 ## install:
-# -curl, tar, unzip (to get the FSL distribution)
+# -curl, tar, unzip (to get the BIDS-Validator)
 # -gcc compiler     (needed to install pydeface)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     curl \
@@ -94,10 +94,11 @@ ENV PATH=${FSLDIR}/bin:$PATH \
 
 COPY --from=builder ./usr/local/lib/python3.5/ /usr/local/lib/python3.5/
 COPY --from=builder ./usr/local/bin/           /usr/local/bin/
-COPY --from=cbinyu/fsl6-core ./usr/local/fsl/bin/flirt  /usr/local/fsl/bin/
+COPY --from=cbinyu/fsl6-core ./usr/local/fsl/bin/flirt  ${FSLDIR}/bin/
+# The following copies both libraries to the $FSLDIR/lib folder:
 COPY --from=cbinyu/fsl6-core ./usr/local/fsl/lib/libopenblas.so.0 \
                              ./usr/local/fsl/lib/libgfortran.so.3 \
-			         /usr/local/fsl/lib/
+			            ${FSLDIR}/lib/
 COPY --from=builder ./usr/lib/x86_64-linux-gnu /usr/lib/
 COPY --from=builder ./usr/bin/                 /usr/bin/
 COPY --from=builder ./usr/lib/node_modules/bids-validator/    /usr/lib/node_modules/bids-validator/
