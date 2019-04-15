@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
-from subprocess import Popen, PIPE, STDOUT
+import subprocess
 from glob import glob
 from bids import BIDSLayout
 import pdb
@@ -13,8 +13,8 @@ def run(command, env={}):
     merged_env = os.environ
     merged_env.update(env)
     print(command)
-    process = Popen(command, stdout=PIPE,
-                               stderr=STDOUT, shell=True,
+    process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, shell=True,
                                env=merged_env)
     while True:
         line = process.stdout.readline()
@@ -26,6 +26,25 @@ def run(command, env={}):
         raise Exception("Non zero return code: %d"%process.returncode)
 
 
+## def run_in_parallel(command_list, env={}):
+##     merged_env = os.environ
+##     merged_env.update(env)
+##     print(command_list)
+##     procs_list = [subprocess.Popen(cmd, stdout=subprocess.PIPE,
+##                              stderr=subprocess.STDOUT,
+##                              shell=True,
+##                              env=merged_env) for cmd in command_list]
+##     for proc in procs_list:
+##         proc.wait()
+    
+##     while True:
+##         line = process.stdout.readline()
+##         line = str(line, 'utf-8')[:-1]
+##         print(line)
+##         if line == '' and process.poll() != None:
+##             break
+##     if process.returncode != 0:
+##         raise Exception("Non zero return code: %d"%process.returncode)
 
 parser = argparse.ArgumentParser(description='Pydeface BIDS App')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -37,20 +56,20 @@ parser.add_argument('analysis_level', help='Level of the analysis that will be p
                     '(in parallel) using the same output_dir.',
                     choices=['participant'])
 parser.add_argument('--participant_label', help='The label(s) of the participant(s) that should be analyzed. The label '
-                   'corresponds to sub-<participant_label> from the BIDS spec '
-                   '(so it does not include "sub-"). If this parameter is not '
-                   'provided all subjects should be analyzed. Multiple '
-                   'participants can be specified with a space separated list.',
-                   nargs="+")
-#parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
-#                   default=1, type=int)
+                    'corresponds to sub-<participant_label> from the BIDS spec '
+                    '(so it does not include "sub-"). If this parameter is not '
+                    'provided all subjects should be analyzed. Multiple '
+                    'participants can be specified with a space separated list.',
+                    nargs="+")
+parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
+                    default=1, type=int)
 parser.add_argument('--modalities', help='Which modalities to deface. Space separated list.'
                     '(Use "anat" for all T1w, T2w and PD.)',
                     nargs="+", choices=['T1w', 'T2w', 'PD', 'bold',
                                         'anat', 'func', 'dwi'],
                     default=['anat'])
 parser.add_argument('--skip_bids_validator', help='Whether or not to perform BIDS dataset validation',
-                   action='store_true')
+                    action='store_true')
 parser.add_argument('-v', '--version', action='version',
                     version='BIDS-App pydeface version {}'.format(__version__))
 
@@ -102,8 +121,24 @@ if args.analysis_level == "participant":
         # For now, we want to just overwrite the inputs, so that the BIDS root folder
         #   doesn't contain any "faced" image (well, just the 'sourcedata' DICOMS)
 
+        # we'll be running the unwarping processes in parallel, so create a set of subprocesses:
+        processes = set()
+
         for myImage in toBeProcessed:
-            run('pydeface {0} --outfile {0} --force'.format(myImage))
+            processes.add( subprocess.Popen('pydeface {0} --outfile {0} --force'.format(myImage),
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT, shell=True,
+                                                env=os.environ) )
+            if len(processes) >= args.n_cpus:
+                os.wait()
+                processes.difference_update(
+                    [p for p in processes if p.poll() is not None])
+
+
+        # Check if all the child processes were closed:
+        for p in processes:
+            if p.poll() is None:
+                p.wait()
 
 
 # nothing to run at the group level for this app
