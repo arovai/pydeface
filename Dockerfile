@@ -3,7 +3,7 @@
 # we'll just get only what we need for the actual APP
 
 # Use an official Python runtime as a parent image
-FROM cbinyu/bidsapp_builder as builder
+FROM cbinyu/bidsapp_builder:v1.0 as builder
 
 ## install:
 # -curl, gcc compiler     (needed to install pydeface)
@@ -16,11 +16,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 
 
 # Latest release: v1.1.0 (Dec. '18)
+ENV PYDEFACE_VERSION=v1.1.0
 
 # Install pydeface from github:
 RUN cd /tmp && \
     mkdir pydeface && \
-    curl -sSL https://github.com/poldracklab/pydeface/archive/v1.1.0.tar.gz \
+    curl -sSL https://github.com/poldracklab/pydeface/archive/${PYDEFACE_VERSION}.tar.gz \
         | tar -vxz -C pydeface --strip-components=1 && \
     cd pydeface && \
     easy_install -Z ./ && \
@@ -54,7 +55,7 @@ RUN cd /tmp && \
 
 ###  Now, get a new machine with only the essentials  ###
 ###       and add the BIDS-Apps wrapper (run.py)      ###
-FROM cbinyu/bidsapp_builder as Application
+FROM cbinyu/bidsapp_builder:v1.0 as Application
 
 ENV FSLDIR=/usr/local/fsl/ \
     FSLOUTPUTTYPE=NIFTI_GZ
@@ -62,7 +63,8 @@ ENV PATH=${FSLDIR}/bin:$PATH \
     LD_LIBRARY_PATH=${FSLDIR}:${LD_LIBRARY_PATH}
 
 # Copy any extra python packages installed in the builder stage:
-COPY --from=builder ./usr/local/lib/python3.5/site-packages/ /usr/local/lib/python3.5/site-packages/
+# (Note the variable ${PYTHON_LIB_PATH} is defined in the bidsapp_builder container) 
+COPY --from=builder ./${PYTHON_LIB_PATH}/site-packages/      ${PYTHON_LIB_PATH}/site-packages/
 COPY --from=builder ./usr/local/bin/           /usr/local/bin/
 COPY --from=cbinyu/fsl6-core ./usr/local/fsl/bin/flirt  ${FSLDIR}/bin/
 # The following copies both libraries to the $FSLDIR/lib folder:
