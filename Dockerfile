@@ -2,18 +2,18 @@
 # We'll compile all needed packages in the builder, and then
 # we'll just get only what we need for the actual APP
 
-# Use an official Python runtime as a parent image
-FROM cbinyu/bidsapp_builder:v1.0 as builder
+# Use CBI's BIDSApp_builder as a parent image:
+ARG BIDSAPP_BUILDER_VERSION=v1.1
+FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
 # -curl, gcc compiler     (needed to install pydeface)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-    curl \
     g++ \
   && apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
 
-###   Install Pydeface   ###
 
+###   Install Pydeface   ###
 
 # Latest release: v1.1.0 (Dec. '18)
 ENV PYDEFACE_VERSION=v1.1.0
@@ -50,12 +50,18 @@ RUN cd /tmp && \
 #    python3 setup.py install && \
 #    cd / && rm -rf /tmp/pydeface
        
+###   Clean up a little   ###
+
+# Get rid of some test folders in some of the Python packages:
+# (They are not needed for our APP):
+RUN rm -fr ${PYTHON_LIB_PATH}/site-packages/scipy
+
 
 #############
 
 ###  Now, get a new machine with only the essentials  ###
 ###       and add the BIDS-Apps wrapper (run.py)      ###
-FROM cbinyu/bidsapp_builder:v1.0 as Application
+FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as Application
 
 ENV FSLDIR=/usr/local/fsl/ \
     FSLOUTPUTTYPE=NIFTI_GZ
