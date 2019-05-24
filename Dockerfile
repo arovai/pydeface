@@ -7,7 +7,7 @@ ARG BIDSAPP_BUILDER_VERSION=v1.1
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
-# -curl, gcc compiler     (needed to install pydeface)
+# -gcc compiler     (needed to install pydeface)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     g++ \
   && apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
@@ -49,18 +49,18 @@ RUN cd /tmp && \
 #    sed -i -e "s/\([ ]*\)package_data=[a-zA-Z0-9]*,$/&\n\1zip_safe=False,/" setup.py && \
 #    python3 setup.py install && \
 #    cd / && rm -rf /tmp/pydeface
-       
+
 ###   Clean up a little   ###
 
-# Get rid of some test folders in some of the Python packages:
-# (They are not needed for our APP):
+# Get rid of some Python packages not needed by our App:
 RUN rm -fr ${PYTHON_LIB_PATH}/site-packages/scipy
 
 
 #############
 
-###  Now, get a new machine with only the essentials  ###
-###       and add the BIDS-Apps wrapper (run.py)      ###
+###  Now, get a new machine with only the essentials,   ###
+###    copy from the builder stage and fsl6-core what's ###
+###    needed and add the BIDS-Apps wrapper (run.py)    ###
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as Application
 
 ENV FSLDIR=/usr/local/fsl/ \
@@ -72,10 +72,10 @@ ENV PATH=${FSLDIR}/bin:$PATH \
 # (Note the variable ${PYTHON_LIB_PATH} is defined in the bidsapp_builder container) 
 COPY --from=builder ./${PYTHON_LIB_PATH}/site-packages/      ${PYTHON_LIB_PATH}/site-packages/
 COPY --from=builder ./usr/local/bin/           /usr/local/bin/
-COPY --from=cbinyu/fsl6-core ./usr/local/fsl/bin/flirt  ${FSLDIR}/bin/
+COPY --from=cbinyu/fsl6-core ./${FSLDIR}/bin/flirt  ${FSLDIR}/bin/
 # The following copies both libraries to the $FSLDIR/lib folder:
-COPY --from=cbinyu/fsl6-core ./usr/local/fsl/lib/libopenblas.so.0 \
-                             ./usr/local/fsl/lib/libgfortran.so.3 \
+COPY --from=cbinyu/fsl6-core ./${FSLDIR}/lib/libopenblas.so.0 \
+                             ./${FSLDIR}/lib/libgfortran.so.3 \
 			            ${FSLDIR}/lib/
 # Copy an extra library needed by FSL:
 COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0     \
