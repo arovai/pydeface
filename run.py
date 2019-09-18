@@ -26,26 +26,6 @@ def run(command, env={}):
         raise Exception("Non zero return code: %d"%process.returncode)
 
 
-## def run_in_parallel(command_list, env={}):
-##     merged_env = os.environ
-##     merged_env.update(env)
-##     print(command_list)
-##     procs_list = [subprocess.Popen(cmd, stdout=subprocess.PIPE,
-##                              stderr=subprocess.STDOUT,
-##                              shell=True,
-##                              env=merged_env) for cmd in command_list]
-##     for proc in procs_list:
-##         proc.wait()
-    
-##     while True:
-##         line = process.stdout.readline()
-##         line = str(line, 'utf-8')[:-1]
-##         print(line)
-##         if line == '' and process.poll() != None:
-##             break
-##     if process.returncode != 0:
-##         raise Exception("Non zero return code: %d"%process.returncode)
-
 parser = argparse.ArgumentParser(description='Pydeface BIDS App')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                     'formatted according to the BIDS standard.')
@@ -77,6 +57,7 @@ parser.add_argument('-v', '--version', action='version',
 args = parser.parse_args()
 
 if not args.skip_bids_validator:
+    print("INFO: Running the bids-validator")
     run('bids-validator %s'%args.bids_dir)
 
 layout = BIDSLayout(args.bids_dir)
@@ -121,24 +102,33 @@ if args.analysis_level == "participant":
         # For now, we want to just overwrite the inputs, so that the BIDS root folder
         #   doesn't contain any "faced" image (well, just the 'sourcedata' DICOMS)
 
-        # we'll be running the unwarping processes in parallel, so create a set of subprocesses:
-        processes = set()
-
+        # we'll be running the unwarping processes in parallel, so create a list of subprocesses:
+        processes = []
+        i = 0
         for myImage in toBeProcessed:
-            processes.add( subprocess.Popen('pydeface {0} --outfile {0} --force'.format(myImage),
+            print(myImage)
+            processes.append( subprocess.Popen('pydeface {0} --outfile {0} --force'.format(myImage),
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT, shell=True,
                                                 env=os.environ) )
+
             if len(processes) >= args.n_cpus:
-                os.wait()
-                processes.difference_update(
-                    [p for p in processes if p.poll() is not None])
+                processes[i].wait()
 
+            i = i + 1
 
-        # Check if all the child processes were closed:
+        # Print output for each process
         for p in processes:
-            if p.poll() is None:
-                p.wait()
-
-
+            try:
+                outs, errs = p.communicate(timeout=15)
+            except TimeoutExpired:
+                p.kill()
+                outs, errs = p.communicate()
+            
+            if outs is not None:
+                print(str(outs, 'utf-8')[:-1])
+            if errs is not None:
+                print(str(errs, 'utf-8')[:-1])
+                
+                
 # nothing to run at the group level for this app
