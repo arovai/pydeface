@@ -12,10 +12,10 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
 def run(command, env={}):
     merged_env = os.environ
     merged_env.update(env)
-    print(command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, shell=True,
                                env=merged_env)
+
     while True:
         line = process.stdout.readline()
         line = str(line, 'utf-8')[:-1]
@@ -24,7 +24,6 @@ def run(command, env={}):
             break
     if process.returncode != 0:
         raise Exception("Non zero return code: %d"%process.returncode)
-
 
 parser = argparse.ArgumentParser(description='Pydeface BIDS App')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -40,6 +39,12 @@ parser.add_argument('--participant_label', help='The label(s) of the participant
                     '(so it does not include "sub-"). If this parameter is not '
                     'provided all subjects should be analyzed. Multiple '
                     'participants can be specified with a space separated list.',
+                    nargs="+")
+parser.add_argument('--session_label', help='The label of the session that should be analyzed. The label '
+                    'corresponds to ses-<session_label> from the BIDS spec '
+                    '(so it does not include "ses-"). If this parameter is not '
+                    'provided all sessions should be analyzed. Multiple '
+                    'sessions can be specified with a space separated list.',
                     nargs="+")
 parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
                     default=1, type=int)
@@ -60,11 +65,18 @@ if not args.skip_bids_validator:
     print("INFO: Running the bids-validator")
     run('bids-validator %s'%args.bids_dir)
 
+print("INFO: Starting pydeface")
+print("INFO: Loading bids directory")
 layout = BIDSLayout(args.bids_dir)
+session_to_analyze = ""
+if args.session_label:
+    session_to_analyze = args.session_label[0]
+
 subjects_to_analyze = []
 # only for a subset of subjects
 if args.participant_label:
     subjects_to_analyze = args.participant_label
+        
 # for all subjects
 else:
     subject_dirs = glob(os.path.join(args.bids_dir, "sub-*"))
@@ -89,7 +101,15 @@ if args.analysis_level == "participant":
             # So we need to make sure we call layout.get with the correct argument names:
             myKwarg = {"datatype" : modality} if modality in ['anat','func','fmap'] else {"suffix" : modality}
             # get filenames matching:
-            myImages = layout.get(subject=subject_label,
+            if session_to_analyze is not "":
+                print("Session: %s"% session_to_analyze)
+                myImages = layout.get(subject=subject_label,
+                                  session=session_to_analyze,
+                                  **myKwarg,
+                                  extensions=["nii.gz", "nii"],
+                                  return_type='file')
+            else:
+                myImages = layout.get(subject=subject_label,
                                   **myKwarg,
                                   extensions=["nii.gz", "nii"],
                                   return_type='file')
@@ -116,19 +136,13 @@ if args.analysis_level == "participant":
                 processes[i].wait()
 
             i = i + 1
-
         # Print output for each process
-        for p in processes:
-            try:
-                outs, errs = p.communicate(timeout=15)
-            except TimeoutExpired:
-                p.kill()
-                outs, errs = p.communicate()
+        for p in processes:         
+            outs, errs = p.communicate()
             
             if outs is not None:
                 print(str(outs, 'utf-8')[:-1])
             if errs is not None:
-                print(str(errs, 'utf-8')[:-1])
-                
+                print(str(errs, 'utf-8')[:-1])    
                 
 # nothing to run at the group level for this app
