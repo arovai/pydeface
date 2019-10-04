@@ -20,6 +20,7 @@ This App has the following command line arguments:
 
 		usage: run.py [-h]
 		              [--participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]
+			      [--session_label SESSION_LABEL [SESSION_LABEL ...]]
 		              bids_dir output_dir {participant}
 
 		Pydeface BIDS App.
@@ -43,6 +44,12 @@ This App has the following command line arguments:
                                         not include "sub-"). If this parameter is not provided
                                         all subjects will be analyzed. Multiple participants
                                         can be specified with a space separated list.
+                  --session_label SESSION_LABEL [SESSION_LABEL ...]
+                                        The label of the session that should be analyzed. The
+                                        label corresponds to ses-<session_label> from the BIDS
+                                        spec (so it does not include "ses-"). If this
+                                        parameter is not provided all sessions should be
+                                        analyzed.
                   --modality MODALITY1 [MODALITY2 ...]
                                         The modalities of images that will be defaced. They can be
                                         either suffixes (e.g.: T1w, T2w, bold) or datatype (e.g.:
