@@ -103,16 +103,13 @@ if args.analysis_level == "participant":
             # get filenames matching:
             if session_to_analyze is not "":
                 print("Session: %s"% session_to_analyze)
-                myImages = layout.get(subject=subject_label,
-                                  session=session_to_analyze,
+                myKwarg['session']=session_to_analyze
+
+            myImages = layout.get(subject=subject_label,
                                   **myKwarg,
                                   extensions=["nii.gz", "nii"],
                                   return_type='file')
-            else:
-                myImages = layout.get(subject=subject_label,
-                                  **myKwarg,
-                                  extensions=["nii.gz", "nii"],
-                                  return_type='file')
+
             if (len(myImages) == 0):
                 print("No {0} images found for subject {1}".format(modality, subject_label))
 
