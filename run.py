@@ -68,9 +68,9 @@ if not args.skip_bids_validator:
 print("INFO: Starting pydeface")
 print("INFO: Loading bids directory")
 layout = BIDSLayout(args.bids_dir)
-session_to_analyze = ""
+sessions_to_analyze = []
 if args.session_label:
-    session_to_analyze = args.session_label[0]
+    sessions_to_analyze = args.session_label
 
 subjects_to_analyze = []
 # only for a subset of subjects
@@ -100,11 +100,11 @@ if args.analysis_level == "participant":
             #    'T1w', 'T2w', 'bold', ...  are "suffixes".  ('dwi' is both).
             # So we need to make sure we call layout.get with the correct argument names:
             myKwarg = {"datatype" : modality} if modality in ['anat','func','fmap'] else {"suffix" : modality}
-            # get filenames matching:
-            if session_to_analyze is not "":
-                print("Session: %s"% session_to_analyze)
-                myKwarg['session']=session_to_analyze
+            if sessions_to_analyze:
+                print("Sessions: %s"% sessions_to_analyze)
+                myKwarg['session']=sessions_to_analyze
 
+            # get filenames matching:
             myImages = layout.get(subject=subject_label,
                                   **myKwarg,
                                   extensions=["nii.gz", "nii"],
@@ -112,6 +112,8 @@ if args.analysis_level == "participant":
 
             if (len(myImages) == 0):
                 print("No {0} images found for subject {1}".format(modality, subject_label))
+                if sessions_to_analyze:
+                    print("  for session(s) {0}".format(sessions_to_analyze))
 
             toBeProcessed.update(myImages)
                 
