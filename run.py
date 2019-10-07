@@ -12,10 +12,10 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
 def run(command, env={}):
     merged_env = os.environ
     merged_env.update(env)
-    print(command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, shell=True,
                                env=merged_env)
+
     while True:
         line = process.stdout.readline()
         line = str(line, 'utf-8')[:-1]
@@ -24,27 +24,6 @@ def run(command, env={}):
             break
     if process.returncode != 0:
         raise Exception("Non zero return code: %d"%process.returncode)
-
-
-## def run_in_parallel(command_list, env={}):
-##     merged_env = os.environ
-##     merged_env.update(env)
-##     print(command_list)
-##     procs_list = [subprocess.Popen(cmd, stdout=subprocess.PIPE,
-##                              stderr=subprocess.STDOUT,
-##                              shell=True,
-##                              env=merged_env) for cmd in command_list]
-##     for proc in procs_list:
-##         proc.wait()
-    
-##     while True:
-##         line = process.stdout.readline()
-##         line = str(line, 'utf-8')[:-1]
-##         print(line)
-##         if line == '' and process.poll() != None:
-##             break
-##     if process.returncode != 0:
-##         raise Exception("Non zero return code: %d"%process.returncode)
 
 parser = argparse.ArgumentParser(description='Pydeface BIDS App')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -60,6 +39,12 @@ parser.add_argument('--participant_label', help='The label(s) of the participant
                     '(so it does not include "sub-"). If this parameter is not '
                     'provided all subjects should be analyzed. Multiple '
                     'participants can be specified with a space separated list.',
+                    nargs="+")
+parser.add_argument('--session_label', help='The label of the session that should be analyzed. The label '
+                    'corresponds to ses-<session_label> from the BIDS spec '
+                    '(so it does not include "ses-"). If this parameter is not '
+                    'provided all sessions should be analyzed. Multiple '
+                    'sessions can be specified with a space separated list.',
                     nargs="+")
 parser.add_argument('--n_cpus', help='Number of CPUs/cores available to use.',
                     default=1, type=int)
@@ -77,13 +62,21 @@ parser.add_argument('-v', '--version', action='version',
 args = parser.parse_args()
 
 if not args.skip_bids_validator:
+    print("INFO: Running the bids-validator")
     run('bids-validator %s'%args.bids_dir)
 
+print("INFO: Starting pydeface")
+print("INFO: Loading bids directory")
 layout = BIDSLayout(args.bids_dir)
+session_to_analyze = ""
+if args.session_label:
+    session_to_analyze = args.session_label[0]
+
 subjects_to_analyze = []
 # only for a subset of subjects
 if args.participant_label:
     subjects_to_analyze = args.participant_label
+        
 # for all subjects
 else:
     subject_dirs = glob(os.path.join(args.bids_dir, "sub-*"))
@@ -108,10 +101,15 @@ if args.analysis_level == "participant":
             # So we need to make sure we call layout.get with the correct argument names:
             myKwarg = {"datatype" : modality} if modality in ['anat','func','fmap'] else {"suffix" : modality}
             # get filenames matching:
+            if session_to_analyze is not "":
+                print("Session: %s"% session_to_analyze)
+                myKwarg['session']=session_to_analyze
+
             myImages = layout.get(subject=subject_label,
                                   **myKwarg,
                                   extensions=["nii.gz", "nii"],
                                   return_type='file')
+
             if (len(myImages) == 0):
                 print("No {0} images found for subject {1}".format(modality, subject_label))
 
@@ -121,24 +119,27 @@ if args.analysis_level == "participant":
         # For now, we want to just overwrite the inputs, so that the BIDS root folder
         #   doesn't contain any "faced" image (well, just the 'sourcedata' DICOMS)
 
-        # we'll be running the unwarping processes in parallel, so create a set of subprocesses:
-        processes = set()
-
+        # we'll be running the unwarping processes in parallel, so create a list of subprocesses:
+        processes = []
+        i = 0
         for myImage in toBeProcessed:
-            processes.add( subprocess.Popen('pydeface {0} --outfile {0} --force'.format(myImage),
+            print(myImage)
+            processes.append( subprocess.Popen('pydeface {0} --outfile {0} --force'.format(myImage),
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT, shell=True,
                                                 env=os.environ) )
+
             if len(processes) >= args.n_cpus:
-                os.wait()
-                processes.difference_update(
-                    [p for p in processes if p.poll() is not None])
+                processes[i].wait()
 
-
-        # Check if all the child processes were closed:
-        for p in processes:
-            if p.poll() is None:
-                p.wait()
-
-
+            i = i + 1
+        # Print output for each process
+        for p in processes:         
+            outs, errs = p.communicate()
+            
+            if outs is not None:
+                print(str(outs, 'utf-8')[:-1])
+            if errs is not None:
+                print(str(errs, 'utf-8')[:-1])    
+                
 # nothing to run at the group level for this app
