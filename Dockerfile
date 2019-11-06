@@ -34,6 +34,12 @@ RUN pip install pydeface==${PYDEFACE_VERSION} && \
 
 ###   Clean up a little   ###
 
+# Get rid of some Python packages not needed by our App:
+# (Don't pip unistall them because pydeface searches for them, so
+#  we want to leave the "dist-info" in place).
+# Delete also the "tests" folders in all python packages.
+RUN rm -r ${PYTHON_LIB_PATH}/site-packages/scipy && \
+    find ${PYTHON_LIB_PATH}/site-packages/ -type d -name "tests"  -print0 | xargs -0 rm -r
 
 
 #############
@@ -58,8 +64,7 @@ COPY --from=cbinyu/fsl6-core ./${FSLDIR}/lib/libopenblas.so.0 \
                              ./${FSLDIR}/lib/libgfortran.so.3 \
 			            ${FSLDIR}/lib/
 # Copy an extra library needed by FSL:
-COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0     \
-                             ./usr/lib/x86_64-linux-gnu/libquadmath.so.0.0.0 \
+COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0*     \
                                     /usr/lib/x86_64-linux-gnu/
 
 COPY run.py version /
