@@ -41,8 +41,6 @@ RUN cd /tmp && \
 
 ###   Clean up a little   ###
 
-# Get rid of some Python packages not needed by our App:
-RUN rm -fr ${PYTHON_LIB_PATH}/site-packages/scipy
 
 
 #############
