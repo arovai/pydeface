@@ -3,11 +3,11 @@
 # we'll just get only what we need for the actual APP
 
 # Use CBI's BIDSApp_builder as a parent image:
-ARG BIDSAPP_BUILDER_VERSION=v1.1
+ARG BIDSAPP_BUILDER_VERSION=v1.4
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
-# -gcc compiler     (needed to install pydeface)
+# -gcc compiler     (needed to install traits/pydeface)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     g++ \
   && apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
