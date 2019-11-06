@@ -15,40 +15,29 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 
 ###   Install Pydeface   ###
 
-# Latest release: v1.1.0 (Dec. '18)
-ENV PYDEFACE_VERSION=v1.1.0
+# Latest release: 2.0.0 (Nov. '19)
+ENV PYDEFACE_VERSION=2.0.0
 
 # Install pydeface from github:
+# 1. When running pydeface, we don't need to check that 'fsl' is installed.
+#    We only need 'flirt', so we just check for it.
+# 2. Installing using the official "setup.py" file does not work because
+#    it installs some of the dependencies as zipped, and when you
+#    call pydeface, it tries to unzip it to the PYTHON_EGG_CACHE,
+#    which is set to /.cache (at least for a regular user, as opposed
+#    to 'root').
+#    My solution is to add the flag "zip_safe=False" to setup.py
+
 RUN cd /tmp && \
     mkdir pydeface && \
     curl -sSL https://github.com/poldracklab/pydeface/archive/${PYDEFACE_VERSION}.tar.gz \
         | tar -vxz -C pydeface --strip-components=1 && \
     cd pydeface && \
+    sed -i -e "s/which('fsl')/which('flirt')/" pydeface/utils.py && \
+    sed -i -e "s/\([ ]*\)package_data=[a-zA-Z0-9]*,$/&\n\1zip_safe=False,/" setup.py && \
     easy_install -Z ./ && \
     cd / && rm -rf /tmp/pydeface
 
-# FOR FUTURE RELEASES:
-# 1. installing using "python3 setup.py install", as suggested
-#    in the pydeface documentation does not work, because it
-#    installs some of the dependencies as zipped, and when you
-#    call pydeface, it tries to unzip it to the PYTHON_EGG_CACHE,
-#    which is set to /.cache (at least for a regular user, as opposed
-#    to 'root').
-#    My solution is to add the flag "zip_safe=False" to setup.py:
-#    Another possibility would be to install using 'pip install .'
-# 2. the "which('fsl')" occurs in the current "main" branch, not
-#    in the v1.1.0 tag.  I'm leaving it here for future tags, but
-#    right now it's harmless.
-#
-#RUN apt-get update -qq && apt-get install -y git-core && \
-#    apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
-#RUN cd /tmp && \
-#    git clone https://github.com/poldracklab/pydeface.git && \
-#    cd pydeface && \
-#    sed -i -e "s/which('fsl')/which('flirt')/" pydeface/utils.py && \
-#    sed -i -e "s/\([ ]*\)package_data=[a-zA-Z0-9]*,$/&\n\1zip_safe=False,/" setup.py && \
-#    python3 setup.py install && \
-#    cd / && rm -rf /tmp/pydeface
 
 ###   Clean up a little   ###
 
