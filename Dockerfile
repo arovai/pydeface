@@ -28,15 +28,8 @@ ENV PYDEFACE_VERSION=2.0.0
 #    to 'root').
 #    My solution is to add the flag "zip_safe=False" to setup.py
 
-RUN cd /tmp && \
-    mkdir pydeface && \
-    curl -sSL https://github.com/poldracklab/pydeface/archive/${PYDEFACE_VERSION}.tar.gz \
-        | tar -vxz -C pydeface --strip-components=1 && \
-    cd pydeface && \
-    sed -i -e "s/which('fsl')/which('flirt')/" pydeface/utils.py && \
-    sed -i -e "s/\([ ]*\)package_data=[a-zA-Z0-9]*,$/&\n\1zip_safe=False,/" setup.py && \
-    easy_install -Z ./ && \
-    cd / && rm -rf /tmp/pydeface
+RUN pip install pydeface==${PYDEFACE_VERSION} && \
+    sed -i -e "s/which('fsl')/which('flirt')/" ${PYTHON_LIB_PATH}/site-packages/pydeface/utils.py
 
 
 ###   Clean up a little   ###
