@@ -64,7 +64,8 @@ COPY --from=cbinyu/fsl6-core ./${FSLDIR}/lib/libopenblas.so.0 \
                              ./${FSLDIR}/lib/libgfortran.so.3 \
 			            ${FSLDIR}/lib/
 # Copy an extra library needed by FSL:
-COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0*     \
+COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0     \
+                             ./usr/lib/x86_64-linux-gnu/libquadmath.so.0.0.0 \
                                     /usr/lib/x86_64-linux-gnu/
 
 COPY run.py version /
