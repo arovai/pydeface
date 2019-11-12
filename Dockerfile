@@ -3,7 +3,7 @@
 # we'll just get only what we need for the actual APP
 
 # Use CBI's BIDSApp_builder as a parent image:
-ARG BIDSAPP_BUILDER_VERSION=v1.4
+ARG BIDSAPP_BUILDER_VERSION=v1.5
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
