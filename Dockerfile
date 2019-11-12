@@ -2,6 +2,8 @@
 # We'll compile all needed packages in the builder, and then
 # we'll just get only what we need for the actual APP
 
+ARG FSLIMAGE_VERSION=v1.0
+
 # Use CBI's BIDSApp_builder as a parent image:
 ARG BIDSAPP_BUILDER_VERSION=v1.5
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
@@ -44,6 +46,8 @@ RUN rm -r ${PYTHON_LIB_PATH}/site-packages/scipy && \
 
 #############
 
+FROM cbinyu/fsl6-core:${FSLIMAGE_VERSION} as fsl_builder
+
 ###  Now, get a new machine with only the essentials,   ###
 ###    copy from the builder stage and fsl6-core what's ###
 ###    needed and add the BIDS-Apps wrapper (run.py)    ###
@@ -58,14 +62,14 @@ ENV PATH=${FSLDIR}/bin:$PATH \
 # (Note the variable ${PYTHON_LIB_PATH} is defined in the bidsapp_builder container) 
 COPY --from=builder ./${PYTHON_LIB_PATH}/site-packages/      ${PYTHON_LIB_PATH}/site-packages/
 COPY --from=builder ./usr/local/bin/           /usr/local/bin/
-COPY --from=cbinyu/fsl6-core ./${FSLDIR}/bin/flirt  ${FSLDIR}/bin/
+COPY --from=fsl_builder ./${FSLDIR}/bin/flirt  ${FSLDIR}/bin/
 # The following copies both libraries to the $FSLDIR/lib folder:
-COPY --from=cbinyu/fsl6-core ./${FSLDIR}/lib/libopenblas.so.0 \
-                             ./${FSLDIR}/lib/libgfortran.so.3 \
+COPY --from=fsl_builder ./${FSLDIR}/lib/libopenblas.so.0 \
+                        ./${FSLDIR}/lib/libgfortran.so.3 \
 			            ${FSLDIR}/lib/
 # Copy an extra library needed by FSL:
-COPY --from=cbinyu/fsl6-core ./usr/lib/x86_64-linux-gnu/libquadmath.so.0     \
-                             ./usr/lib/x86_64-linux-gnu/libquadmath.so.0.0.0 \
+COPY --from=fsl_builder ./usr/lib/x86_64-linux-gnu/libquadmath.so.0     \
+                        ./usr/lib/x86_64-linux-gnu/libquadmath.so.0.0.0 \
                                     /usr/lib/x86_64-linux-gnu/
 
 COPY run.py version /
