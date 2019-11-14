@@ -107,7 +107,7 @@ if args.analysis_level == "participant":
             # get filenames matching:
             myImages = layout.get(subject=subject_label,
                                   **myKwarg,
-                                  extensions=["nii.gz", "nii"],
+                                  extension=["nii.gz", "nii"],
                                   return_type='file')
 
             if (len(myImages) == 0):
