@@ -2,10 +2,10 @@
 # We'll compile all needed packages in the builder, and then
 # we'll just get only what we need for the actual APP
 
-ARG FSLIMAGE_VERSION=v2.0
+ARG FSLIMAGE_VERSION=v2.1
 
 # Use CBI's BIDSApp_builder as a parent image:
-ARG BIDSAPP_BUILDER_VERSION=v1.5
+ARG BIDSAPP_BUILDER_VERSION=v1.6
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
