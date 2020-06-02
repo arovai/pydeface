@@ -1,6 +1,6 @@
 ## Pydeface BIDS App
 
-[![Docker image](https://img.shields.io/badge/docker-cbinyu/pydeface-brightgreen.svg?logo=docker&style=flat)](https://hub.docker.com/r/cbinyu/pydeface/tags/)
+[![Docker image](https://img.shields.io/badge/docker-cbinyu/bids_pydeface-brightgreen.svg?logo=docker&style=flat)](https://hub.docker.com/r/cbinyu/bids_pydeface/tags/)
 [![DOI](https://zenodo.org/badge/172774738.svg)](https://zenodo.org/badge/latestdoi/172774738)
 
 This a [BIDS App](https://bids-apps.neuroimaging.io) wrapper for [Pydeface](https://github.com/poldracklab/pydeface).
