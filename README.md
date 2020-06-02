@@ -1,4 +1,8 @@
 ## Pydeface BIDS App
+
+[![Docker image](https://img.shields.io/badge/docker-cbinyu/pydeface-brightgreen.svg?logo=docker&style=flat)](https://hub.docker.com/r/cbinyu/pydeface/tags/)
+[![DOI](https://zenodo.org/badge/172774738.svg)](https://zenodo.org/badge/latestdoi/172774738)
+
 This a [BIDS App](https://bids-apps.neuroimaging.io) wrapper for [Pydeface](https://github.com/poldracklab/pydeface).
 Like every BIDS App it consists of a container that includes all of the dependencies and run script that parses a [BIDS dataset](http://bids.neuroimaging.io).
 BIDS Apps run on Windows, Linux, Mac as well as HCPs/clusters.
