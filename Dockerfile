@@ -5,7 +5,7 @@
 ARG FSLIMAGE_VERSION=v2.1
 
 # Use CBI's BIDSApp_builder as a parent image:
-ARG BIDSAPP_BUILDER_VERSION=v1.6
+ARG BIDSAPP_BUILDER_VERSION=v1.7
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
