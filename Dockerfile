@@ -2,10 +2,10 @@
 # We'll compile all needed packages in the builder, and then
 # we'll just get only what we need for the actual APP
 
-ARG FSLIMAGE_VERSION=v2.1
+ARG FSLIMAGE_VERSION=v2.6
 
 # Use CBI's BIDSApp_builder as a parent image:
-ARG BIDSAPP_BUILDER_VERSION=v1.7
+ARG BIDSAPP_BUILDER_VERSION=v1.8
 FROM cbinyu/bidsapp_builder:${BIDSAPP_BUILDER_VERSION} as builder
 
 ## install:
@@ -30,7 +30,7 @@ ENV PYDEFACE_VERSION=2.0.0
 #    to 'root').
 #    My solution is to add the flag "zip_safe=False" to setup.py
 
-RUN pip install pydeface==${PYDEFACE_VERSION} && \
+RUN pip install pandas pydeface==${PYDEFACE_VERSION} && \
     sed -i -e "s/which('fsl')/which('flirt')/" ${PYTHON_LIB_PATH}/site-packages/pydeface/utils.py
 
 
@@ -59,9 +59,10 @@ ENV PATH=${FSLDIR}/bin:$PATH \
     LD_LIBRARY_PATH=${FSLDIR}:${LD_LIBRARY_PATH}
 
 # Copy any extra python packages installed in the builder stage:
-# (Note the variable ${PYTHON_LIB_PATH} is defined in the bidsapp_builder container) 
+# (Note ${PYTHON_LIB_PATH} and ${VIRTUAL_ENV} are defined in the bidsapp_builder container) 
 COPY --from=builder ./${PYTHON_LIB_PATH}/site-packages/      ${PYTHON_LIB_PATH}/site-packages/
-COPY --from=builder ./usr/local/bin/           /usr/local/bin/
+#COPY --from=builder ./usr/local/bin/           /usr/local/bin/
+COPY --from=builder ./${VIRTUAL_ENV}/bin/           ${VIRTUAL_ENV}/bin/
 COPY --from=fsl_builder ./${FSLDIR}/bin/flirt  ${FSLDIR}/bin/
 # The following copies both libraries to the $FSLDIR/lib folder:
 COPY --from=fsl_builder ./${FSLDIR}/lib/libopenblas.so.0 \
