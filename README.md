@@ -66,13 +66,12 @@ To run it in participant level mode (for one participant):
 
     docker run -i --rm \
 		-v /Users/filo/data/ds005:/bids_dataset \
-		cbinyu/pydeface \
+		cbinyu/bids_pydeface \
 		/bids_dataset /bids_dataset participant --participant_label 01
 
 To run it for a specific modality of images:
 
     docker run -i --rm \
                 -v /Users/filo/data/ds005:/bids_dataset \
-		cbinyu/pydeface \
+		cbinyu/bids_pydeface \
 		/bids_dataset /bids_dataset participant --participant_label 01 --modalities T1w
-
